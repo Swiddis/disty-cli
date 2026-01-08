@@ -1,5 +1,8 @@
+mod parsing;
+
 use clap::Parser;
 use rayon::prelude::*;
+use std::fs::File;
 use std::io::{self, BufRead};
 use textplots::{Chart, Plot, Shape};
 
@@ -165,18 +168,20 @@ fn format_bytes(bytes: f64) -> String {
 fn main() {
     let args = Args::parse();
 
-    let reader: Box<dyn BufRead> = match &args.input {
+    // Use mmap for files, stdin for pipes
+    let data = match &args.input {
         Some(path) => {
-            let file = std::fs::File::open(path).unwrap_or_else(|e| {
+            let file = File::open(path).unwrap_or_else(|e| {
                 eprintln!("error opening {}: {}", path.display(), e);
                 std::process::exit(1);
             });
-            Box::new(io::BufReader::new(file))
+            parsing::read_file_mmap(&file, args.unit)
         }
-        None => Box::new(io::stdin().lock()),
+        None => {
+            let reader = Box::new(io::stdin().lock());
+            read_input(reader, args.unit)
+        }
     };
-
-    let data = read_input(reader, args.unit);
 
     if data.is_empty() {
         eprintln!("no input");
@@ -381,6 +386,7 @@ fn plot_kde(stats: &Stats) {
 }
 
 /// Simple Gaussian Kernel Density Estimator
+#[allow(clippy::upper_case_acronyms)]
 struct KDE {
     data: Vec<f64>,
     bandwidth: f64,

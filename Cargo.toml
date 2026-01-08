@@ -8,5 +8,6 @@ debug = true
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
+memmap2 = "0.9"
 rayon = "1.10"
 textplots = "0.8.7"
