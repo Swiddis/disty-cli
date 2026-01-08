@@ -1,4 +1,5 @@
 use clap::Parser;
+use rayon::prelude::*;
 use std::io::{self, BufRead};
 use textplots::{Chart, Plot, Shape};
 
@@ -360,11 +361,22 @@ fn plot_kde(stats: &Stats) {
     let kde = KDE::new(stats.data.clone());
     let (min_x, max_x) = kde.bounds();
 
-    // Use continuous function - textplots samples at chart width (140 points)
-    let pdf_fn = move |x: f32| kde.pdf(x as f64) as f32;
+    // Pre-sample KDE in parallel at chart width points
+    // This mimics what textplots does internally for Shape::Continuous,
+    // but parallelizes the expensive kde.pdf() evaluations
+    const CHART_WIDTH: usize = 160;
+    let points: Vec<(f32, f32)> = (0..CHART_WIDTH)
+        .into_par_iter()
+        .map(|i| {
+            // Map pixel coordinate to data coordinate (inv_linear)
+            let x = min_x + (max_x - min_x) * (i as f64 / (CHART_WIDTH - 1) as f64);
+            let y = kde.pdf(x);
+            (x as f32, y as f32)
+        })
+        .collect();
 
     Chart::new(160, 40, min_x as f32, max_x as f32)
-        .lineplot(&Shape::Continuous(Box::new(pdf_fn)))
+        .lineplot(&Shape::Lines(&points))
         .nice();
 }
 
