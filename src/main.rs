@@ -426,6 +426,7 @@ fn plot_kde(stats: &Stats, format: Format) {
     Chart::new(160, 40, (min_x / scale) as f32, (max_x / scale) as f32)
         .lineplot(&Shape::Lines(&points))
         .x_label_format(label_formatter)
+        .y_label_format(LabelFormat::None)
         .nice();
 }
 
