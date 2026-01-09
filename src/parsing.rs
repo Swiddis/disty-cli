@@ -39,9 +39,7 @@ pub fn read_file_mmap(file: &File, unit: Option<Unit>) -> Vec<f64> {
     }
     boundaries.push(mmap.len());
 
-    let chunks: Vec<_> = boundaries.windows(2)
-        .map(|w| (w[0], w[1]))
-        .collect();
+    let chunks: Vec<_> = boundaries.windows(2).map(|w| (w[0], w[1])).collect();
 
     let results: Vec<Vec<f64>> = chunks
         .par_iter()

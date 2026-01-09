@@ -94,8 +94,11 @@ impl Unit {
     /// Returns the appropriate output format (time units display as durations, byte units as sizes)
     fn default_format(&self) -> Format {
         match self {
-            Self::Nanoseconds | Self::Microseconds | Self::MicrosecondsMu
-            | Self::Milliseconds | Self::Seconds => Format::Time,
+            Self::Nanoseconds
+            | Self::Microseconds
+            | Self::MicrosecondsMu
+            | Self::Milliseconds
+            | Self::Seconds => Format::Time,
             _ => Format::Bytes,
         }
     }
@@ -190,7 +193,9 @@ fn main() {
         return;
     }
 
-    let format = args.fmt.or_else(|| args.unit.map(|u| u.default_format()))
+    let format = args
+        .fmt
+        .or_else(|| args.unit.map(|u| u.default_format()))
         .unwrap_or(Format::Float);
 
     let stats = Stats::new(data);
@@ -273,9 +278,7 @@ impl Stats {
             f64::NAN
         };
 
-        let variance = data.iter()
-            .map(|x| (x - mean).powi(2))
-            .sum::<f64>() / n as f64;
+        let variance = data.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / n as f64;
         let std_dev = variance.sqrt();
 
         Stats {
@@ -443,9 +446,7 @@ impl KDE {
         let n = data.len() as f64;
 
         let mean = data.iter().sum::<f64>() / n;
-        let variance = data.iter()
-            .map(|x| (x - mean).powi(2))
-            .sum::<f64>() / n;
+        let variance = data.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / n;
         let std_dev = variance.sqrt();
 
         // Silverman's rule of thumb: h ≈ 1.06 * σ * n^(-1/5)
