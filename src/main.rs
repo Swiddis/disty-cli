@@ -4,7 +4,7 @@ use clap::Parser;
 use rayon::prelude::*;
 use std::fs::File;
 use std::io::{self, BufRead};
-use textplots::{Chart, Plot, Shape};
+use textplots::{Chart, LabelBuilder, LabelFormat, Plot, Shape};
 
 #[derive(Parser)]
 #[command(about = "Summarizes numerical distributions", version)]
@@ -197,7 +197,7 @@ fn main() {
     // For now, output to stdout (can extend to support output file later)
     print_stats_table(&stats, format);
     println!();
-    plot_kde(&stats);
+    plot_kde(&stats, format);
 }
 
 /// Read numbers from input, one per line
@@ -362,9 +362,48 @@ fn print_stats_table(stats: &Stats, format: Format) {
     }
 }
 
-fn plot_kde(stats: &Stats) {
+/// Determine appropriate scale and unit label for displaying chart axes
+fn get_display_scale(max_value: f64, format: Format) -> (f64, &'static str) {
+    match format {
+        Format::Time => {
+            // Choose unit based on maximum value (in nanoseconds)
+            if max_value < 1e3 {
+                (1.0, "ns")
+            } else if max_value < 1e6 {
+                (1e3, "µs")
+            } else if max_value < 1e9 {
+                (1e6, "ms")
+            } else {
+                (1e9, "s")
+            }
+        }
+        Format::Bytes => {
+            // Choose unit based on maximum value (in bytes)
+            if max_value < 1024.0 {
+                (1.0, "B")
+            } else if max_value < 1024.0_f64.powi(2) {
+                (1024.0, "KiB")
+            } else if max_value < 1024.0_f64.powi(3) {
+                (1024.0_f64.powi(2), "MiB")
+            } else if max_value < 1024.0_f64.powi(4) {
+                (1024.0_f64.powi(3), "GiB")
+            } else if max_value < 1024.0_f64.powi(5) {
+                (1024.0_f64.powi(4), "TiB")
+            } else {
+                (1024.0_f64.powi(5), "PiB")
+            }
+        }
+        Format::Float => (1.0, ""),
+        Format::Hex => (1.0, ""),
+    }
+}
+
+fn plot_kde(stats: &Stats, format: Format) {
     let kde = KDE::new(stats.data.clone());
     let (min_x, max_x) = kde.bounds();
+
+    // Determine appropriate scale for axis display
+    let (scale, unit_label) = get_display_scale(max_x, format);
 
     // Pre-sample KDE in parallel at chart width points
     // This mimics what textplots does internally for Shape::Continuous,
@@ -376,12 +415,22 @@ fn plot_kde(stats: &Stats) {
             // Map pixel coordinate to data coordinate (inv_linear)
             let x = min_x + (max_x - min_x) * (i as f64 / (CHART_WIDTH - 1) as f64);
             let y = kde.pdf(x);
-            (x as f32, y as f32)
+            // Scale x-axis to display units
+            ((x / scale) as f32, y as f32)
         })
         .collect();
 
-    Chart::new(160, 40, min_x as f32, max_x as f32)
+    // Create custom label formatter that includes the unit
+    let label_formatter = if !unit_label.is_empty() {
+        let unit = unit_label.to_string();
+        LabelFormat::Custom(Box::new(move |v: f32| format!("{:.1}{}", v, unit)))
+    } else {
+        LabelFormat::Value
+    };
+
+    Chart::new(160, 40, (min_x / scale) as f32, (max_x / scale) as f32)
         .lineplot(&Shape::Lines(&points))
+        .x_label_format(label_formatter)
         .nice();
 }
 
