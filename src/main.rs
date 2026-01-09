@@ -91,7 +91,7 @@ impl Unit {
         }
     }
 
-    /// Get the default format for this unit
+    /// Returns the appropriate output format (time units display as durations, byte units as sizes)
     fn default_format(&self) -> Format {
         match self {
             Self::Nanoseconds | Self::Microseconds | Self::MicrosecondsMu
@@ -125,7 +125,8 @@ impl Format {
     }
 }
 
-/// Format a duration in nanoseconds as a human-readable string
+/// Formats nanoseconds as human-readable duration (e.g., "1.5ms" or "2m30.00s")
+/// Selects appropriate unit to keep the numeric part readable (avoids "1500000ns")
 fn format_duration(ns: f64) -> String {
     if ns < 1e3 {
         format!("{:.2}ns", ns)
@@ -147,7 +148,8 @@ fn format_duration(ns: f64) -> String {
     }
 }
 
-/// Format bytes with IEC binary prefixes
+/// Formats byte counts using IEC binary prefixes (KiB, MiB, etc.) rather than decimal
+/// prefixes to match how memory and storage are actually addressed (powers of 1024)
 fn format_bytes(bytes: f64) -> String {
     let units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
     let mut value = bytes;
@@ -188,7 +190,6 @@ fn main() {
         return;
     }
 
-    // Determine output format
     let format = args.fmt.or_else(|| args.unit.map(|u| u.default_format()))
         .unwrap_or(Format::Float);
 
@@ -200,7 +201,8 @@ fn main() {
     plot_kde(&stats, format);
 }
 
-/// Read numbers from input, one per line
+/// Parses numeric input (decimal or hex with 0x prefix) from buffered reader.
+/// All values are scaled to base units (nanoseconds for time, bytes for size) for uniform processing.
 fn read_input(reader: Box<dyn BufRead>, unit: Option<Unit>) -> Vec<f64> {
     let scale = unit.map(|u| u.scale()).unwrap_or(1.0);
     let mut values = Vec::new();
@@ -243,7 +245,8 @@ fn read_input(reader: Box<dyn BufRead>, unit: Option<Unit>) -> Vec<f64> {
     values
 }
 
-/// Statistics computed from a dataset
+/// Pre-computed statistics over sorted dataset.
+/// Data is kept sorted to enable efficient quantile lookups via binary search.
 struct Stats {
     data: Vec<f64>,
     n: usize,
@@ -270,7 +273,6 @@ impl Stats {
             f64::NAN
         };
 
-        // Variance and standard deviation
         let variance = data.iter()
             .map(|x| (x - mean).powi(2))
             .sum::<f64>() / n as f64;
@@ -310,7 +312,6 @@ impl Stats {
 }
 
 fn print_stats_table(stats: &Stats, format: Format) {
-    // Build summary stats (left column items)
     let mut left_items = vec![
         ("n", stats.n.to_string()),
         ("sum", format.format(stats.sum)),
@@ -324,7 +325,6 @@ fn print_stats_table(stats: &Stats, format: Format) {
     left_items.push(("std dev", format.format(stats.std_dev)));
     left_items.push(("variance", format.format(stats.variance)));
 
-    // Build percentiles (right column items)
     let percentiles = [
         (0.0, "min"),
         (0.01, "1%ile"),
@@ -342,18 +342,15 @@ fn print_stats_table(stats: &Stats, format: Format) {
         .map(|(q, label)| (*label, format.format(stats.quantile(*q))))
         .collect();
 
-    // Print two-column table
     let max_rows = left_items.len().max(right_items.len());
 
     for i in 0..max_rows {
-        // Left column
         if let Some((label, value)) = left_items.get(i) {
             print!("{:>8}  {:<20}", label, value);
         } else {
             print!("{:30}", "");
         }
 
-        // Right column
         if let Some((label, value)) = right_items.get(i) {
             println!("{:>8}  {}", label, value);
         } else {
@@ -362,7 +359,8 @@ fn print_stats_table(stats: &Stats, format: Format) {
     }
 }
 
-/// Determine appropriate scale and unit label for displaying chart axes
+/// Selects the largest unit where max_value remains >= 1 to avoid tiny decimals
+/// (e.g., prefers "500ms" over "0.5s", but "2s" over "2000ms")
 fn get_display_scale(max_value: f64, format: Format) -> (f64, &'static str) {
     match format {
         Format::Time => {
@@ -402,7 +400,6 @@ fn plot_kde(stats: &Stats, format: Format) {
     let kde = KDE::new(stats.data.clone());
     let (min_x, max_x) = kde.bounds();
 
-    // Determine appropriate scale for axis display
     let (scale, unit_label) = get_display_scale(max_x, format);
 
     // Pre-sample KDE in parallel at chart width points
@@ -415,12 +412,10 @@ fn plot_kde(stats: &Stats, format: Format) {
             // Map pixel coordinate to data coordinate (inv_linear)
             let x = min_x + (max_x - min_x) * (i as f64 / (CHART_WIDTH - 1) as f64);
             let y = kde.pdf(x);
-            // Scale x-axis to display units
             ((x / scale) as f32, y as f32)
         })
         .collect();
 
-    // Create custom label formatter that includes the unit
     let label_formatter = if !unit_label.is_empty() {
         let unit = unit_label.to_string();
         LabelFormat::Custom(Box::new(move |v: f32| format!("{:.1}{}", v, unit)))
@@ -446,7 +441,6 @@ impl KDE {
     fn new(mut data: Vec<f64>) -> Self {
         let n = data.len() as f64;
 
-        // Calculate standard deviation for bandwidth
         let mean = data.iter().sum::<f64>() / n;
         let variance = data.iter()
             .map(|x| (x - mean).powi(2))
@@ -461,7 +455,7 @@ impl KDE {
         KDE { data, bandwidth }
     }
 
-    /// Evaluate the probability density function at point x
+    /// Returns the probability density at x (not a probability - can exceed 1.0 for narrow distributions)
     fn pdf(&self, x: f64) -> f64 {
         let n = self.data.len() as f64;
         let h = self.bandwidth;
@@ -476,7 +470,6 @@ impl KDE {
         let start_idx = self.data.partition_point(|&xi| xi < lower);
         let end_idx = self.data.partition_point(|&xi| xi <= upper);
 
-        // Only evaluate kernel for points in range
         let sum: f64 = self.data[start_idx..end_idx]
             .iter()
             .map(|&xi| gaussian_kernel((x - xi) / h))

@@ -4,11 +4,11 @@ use std::fs::File;
 
 use crate::Unit;
 
-/// Read numbers from memory-mapped file with parallel chunk parsing
+/// Parses file using mmap for zero-copy reads and rayon for parallel chunk processing.
+/// Much faster than sequential buffered I/O for large files (avoids syscall overhead per line).
 pub fn read_file_mmap(file: &File, unit: Option<Unit>) -> Vec<f64> {
     let scale = unit.map(|u| u.scale()).unwrap_or(1.0);
 
-    // Memory map the file
     let mmap = unsafe {
         Mmap::map(file).unwrap_or_else(|e| {
             eprintln!("error mapping file: {}", e);
@@ -20,18 +20,16 @@ pub fn read_file_mmap(file: &File, unit: Option<Unit>) -> Vec<f64> {
         return Vec::new();
     }
 
-    // Split into chunks for parallel processing
     let num_threads = rayon::current_num_threads();
     let chunk_size = mmap.len().div_ceil(num_threads);
 
-    // Find chunk boundaries (must be at line breaks)
+    // Chunk boundaries must align to line breaks to avoid splitting numbers mid-parse
     let mut boundaries = vec![0];
     for i in 1..num_threads {
         let mut pos = i * chunk_size;
         if pos >= mmap.len() {
             break;
         }
-        // Scan forward to find next newline
         while pos < mmap.len() && mmap[pos] != b'\n' {
             pos += 1;
         }
@@ -41,7 +39,6 @@ pub fn read_file_mmap(file: &File, unit: Option<Unit>) -> Vec<f64> {
     }
     boundaries.push(mmap.len());
 
-    // Parse each chunk in parallel
     let chunks: Vec<_> = boundaries.windows(2)
         .map(|w| (w[0], w[1]))
         .collect();
@@ -54,11 +51,11 @@ pub fn read_file_mmap(file: &File, unit: Option<Unit>) -> Vec<f64> {
         })
         .collect();
 
-    // Flatten results
     results.into_iter().flatten().collect()
 }
 
-/// Parse a chunk of bytes into floats
+/// Parses newline-delimited numbers from byte slice.
+/// Returns values scaled to base units (ignores invalid lines silently).
 fn parse_chunk(chunk: &[u8], scale: f64) -> Vec<f64> {
     let mut values = Vec::new();
     let mut start = 0;
@@ -86,9 +83,9 @@ fn parse_chunk(chunk: &[u8], scale: f64) -> Vec<f64> {
     values
 }
 
-/// Parse a single line into a float
+/// Parses a single line as either decimal float or hex (0x prefix).
+/// Returns None for invalid input rather than panicking (for robustness with untrusted input).
 fn parse_line(line: &[u8], scale: f64) -> Option<f64> {
-    // Trim whitespace
     let mut start = 0;
     let mut end = line.len();
 
@@ -105,10 +102,8 @@ fn parse_line(line: &[u8], scale: f64) -> Option<f64> {
 
     let trimmed = &line[start..end];
 
-    // Try to parse as UTF-8 string
     let s = std::str::from_utf8(trimmed).ok()?;
 
-    // Handle hex
     if let Some(hex) = s.strip_prefix("0x") {
         u64::from_str_radix(hex, 16)
             .ok()
