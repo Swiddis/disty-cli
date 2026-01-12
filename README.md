@@ -43,11 +43,10 @@ $ cargo install --path .
 $ disty --help
 Summarizes numerical distributions
 
-Usage: disty [OPTIONS] [INPUT] [OUTPUT]
+Usage: disty [OPTIONS] [INPUT]
 
 Arguments:
-  [INPUT]   Input file (stdin if not specified)
-  [OUTPUT]  Output file (stdout if not specified)
+  [INPUT]  Input file (stdin if not specified)
 
 Options:
   -u, --unit <UNIT>  Input unit [possible values: ns, us, ms, s, B, KB, MB, GB, TB, PB, KiB, MiB, GiB, TiB, PiB]

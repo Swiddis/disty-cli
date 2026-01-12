@@ -12,9 +12,6 @@ struct Args {
     /// Input file (stdin if not specified)
     input: Option<std::path::PathBuf>,
 
-    /// Output file (stdout if not specified)
-    output: Option<std::path::PathBuf>,
-
     /// Input unit
     #[arg(short, long)]
     unit: Option<Unit>,
