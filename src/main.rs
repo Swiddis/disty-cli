@@ -22,18 +22,18 @@ struct Args {
     /// Output format
     #[arg(short, long)]
     fmt: Option<Format>,
+
+    #[arg(long)]
+    no_plot: bool,
 }
 
 #[derive(Clone, Copy, clap::ValueEnum)]
-#[allow(non_camel_case_types)]
 enum Unit {
     // Time units
     #[value(name = "ns")]
     Nanoseconds,
     #[value(name = "us")]
     Microseconds,
-    #[value(name = "µs")]
-    MicrosecondsMu,
     #[value(name = "ms")]
     Milliseconds,
     #[value(name = "s")]
@@ -72,7 +72,7 @@ impl Unit {
         match self {
             // Time: base unit is nanoseconds
             Self::Nanoseconds => 1.0,
-            Self::Microseconds | Self::MicrosecondsMu => 1e3,
+            Self::Microseconds => 1e3,
             Self::Milliseconds => 1e6,
             Self::Seconds => 1e9,
 
@@ -96,7 +96,6 @@ impl Unit {
         match self {
             Self::Nanoseconds
             | Self::Microseconds
-            | Self::MicrosecondsMu
             | Self::Milliseconds
             | Self::Seconds => Format::Time,
             _ => Format::Bytes,
@@ -128,8 +127,6 @@ impl Format {
     }
 }
 
-/// Formats nanoseconds as human-readable duration (e.g., "1.5ms" or "2m30.00s")
-/// Selects appropriate unit to keep the numeric part readable (avoids "1500000ns")
 fn format_duration(ns: f64) -> String {
     if ns < 1e3 {
         format!("{:.2}ns", ns)
@@ -151,8 +148,6 @@ fn format_duration(ns: f64) -> String {
     }
 }
 
-/// Formats byte counts using IEC binary prefixes (KiB, MiB, etc.) rather than decimal
-/// prefixes to match how memory and storage are actually addressed (powers of 1024)
 fn format_bytes(bytes: f64) -> String {
     let units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
     let mut value = bytes;
@@ -173,7 +168,6 @@ fn format_bytes(bytes: f64) -> String {
 fn main() {
     let args = Args::parse();
 
-    // Use mmap for files, stdin for pipes
     let data = match &args.input {
         Some(path) => {
             let file = File::open(path).unwrap_or_else(|e| {
@@ -200,14 +194,16 @@ fn main() {
 
     let stats = Stats::new(data);
 
-    // For now, output to stdout (can extend to support output file later)
+    // TODO if no_plot, we should probably just print lines instead of table.
     print_stats_table(&stats, format);
-    println!();
-    plot_kde(&stats, format);
+    if !args.no_plot {
+        println!();
+        plot_kde(&stats, format);
+    }
 }
 
 /// Parses numeric input (decimal or hex with 0x prefix) from buffered reader.
-/// All values are scaled to base units (nanoseconds for time, bytes for size) for uniform processing.
+/// All values are scaled to base units (nanoseconds for time, bytes for size).
 fn read_input(reader: Box<dyn BufRead>, unit: Option<Unit>) -> Vec<f64> {
     let scale = unit.map(|u| u.scale()).unwrap_or(1.0);
     let mut values = Vec::new();
@@ -251,7 +247,7 @@ fn read_input(reader: Box<dyn BufRead>, unit: Option<Unit>) -> Vec<f64> {
 }
 
 /// Pre-computed statistics over sorted dataset.
-/// Data is kept sorted to enable efficient quantile lookups via binary search.
+/// Data is kept sorted to enable efficient quantile lookups & binary search.
 struct Stats {
     data: Vec<f64>,
     n: usize,
@@ -270,7 +266,6 @@ impl Stats {
         let sum: f64 = data.iter().sum();
         let mean = sum / n as f64;
 
-        // Geometric mean (only for positive values)
         let geo_mean = if data.iter().all(|&x| x > 0.0) {
             let log_sum: f64 = data.iter().map(|x| x.ln()).sum();
             (log_sum / n as f64).exp()
@@ -434,6 +429,7 @@ fn plot_kde(stats: &Stats, format: Format) {
 }
 
 /// Simple Gaussian Kernel Density Estimator
+/// TODO make this even faster by porting the fast-kde paper cited at https://github.com/uwdata/fast-kde
 #[allow(clippy::upper_case_acronyms)]
 struct KDE {
     data: Vec<f64>,
@@ -457,7 +453,7 @@ impl KDE {
         KDE { data, bandwidth }
     }
 
-    /// Returns the probability density at x (not a probability - can exceed 1.0 for narrow distributions)
+    /// Probability density at x
     fn pdf(&self, x: f64) -> f64 {
         let n = self.data.len() as f64;
         let h = self.bandwidth;
@@ -499,6 +495,7 @@ impl KDE {
 
 /// Standard Gaussian kernel: K(u) = (1/√(2π)) * e^(-u²/2)
 fn gaussian_kernel(u: f64) -> f64 {
+    // We can't use sqrt in const contexts still :(
     const INV_SQRT_2PI: f64 = 0.3989422804014327;
     INV_SQRT_2PI * (-0.5 * u * u).exp()
 }

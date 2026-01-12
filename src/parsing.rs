@@ -4,8 +4,8 @@ use std::fs::File;
 
 use crate::Unit;
 
-/// Parses file using mmap for zero-copy reads and rayon for parallel chunk processing.
-/// Much faster than sequential buffered I/O for large files (avoids syscall overhead per line).
+/// Parses file using mmap.
+/// Much faster than sequential buffered I/O for large files.
 pub fn read_file_mmap(file: &File, unit: Option<Unit>) -> Vec<f64> {
     let scale = unit.map(|u| u.scale()).unwrap_or(1.0);
 
