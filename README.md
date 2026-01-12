@@ -50,8 +50,9 @@ Arguments:
   [OUTPUT]  Output file (stdout if not specified)
 
 Options:
-  -u, --unit <UNIT>  Input unit [possible values: ns, us, µs, ms, s, B, KB, MB, GB, TB, PB, KiB, MiB, GiB, TiB, PiB]
+  -u, --unit <UNIT>  Input unit [possible values: ns, us, ms, s, B, KB, MB, GB, TB, PB, KiB, MiB, GiB, TiB, PiB]
   -f, --fmt <FMT>    Output format [possible values: float, hex, time, bytes]
+      --no-plot      Skip KDE plotting
   -h, --help         Print help
   -V, --version      Print version
 ```
