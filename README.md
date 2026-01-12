@@ -31,9 +31,12 @@ Compared to distx, this version:
 
 ## Installing
 
-Clone and install through Cargo.
+Install via Cargo.
 
 ```sh
+# From Crates.io
+$ cargo install disty-cli
+# From source
 $ cargo install --path .
 ```
 
