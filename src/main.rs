@@ -23,6 +23,7 @@ struct Args {
     #[arg(short, long)]
     fmt: Option<Format>,
 
+    /// Skip KDE plotting
     #[arg(long)]
     no_plot: bool,
 }
