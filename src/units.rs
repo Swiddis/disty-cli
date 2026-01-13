@@ -67,10 +67,9 @@ impl Unit {
     /// Returns the appropriate output format (time units display as durations, byte units as sizes)
     pub fn default_format(&self) -> Format {
         match self {
-            Self::Nanoseconds
-            | Self::Microseconds
-            | Self::Milliseconds
-            | Self::Seconds => Format::Time,
+            Self::Nanoseconds | Self::Microseconds | Self::Milliseconds | Self::Seconds => {
+                Format::Time
+            }
             _ => Format::Bytes,
         }
     }

@@ -33,7 +33,6 @@ struct Args {
     no_plot: bool,
 }
 
-
 fn main() {
     let args = Args::parse();
 
@@ -115,7 +114,6 @@ fn read_input(reader: Box<dyn BufRead>, unit: Option<Unit>) -> Vec<f64> {
     values
 }
 
-
 fn print_stats_table(stats: &Stats, format: Format) {
     let mut left_items = vec![
         ("n", stats.n.to_string()),
@@ -164,7 +162,6 @@ fn print_stats_table(stats: &Stats, format: Format) {
     }
 }
 
-
 fn plot_kde(stats: &Stats, format: Format) {
     let kde = KDE::new(&stats.data);
     let (min_x, max_x) = kde.bounds();
@@ -198,4 +195,3 @@ fn plot_kde(stats: &Stats, format: Format) {
         .y_label_format(LabelFormat::None)
         .nice();
 }
-

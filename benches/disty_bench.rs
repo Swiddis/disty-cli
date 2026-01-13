@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use disty_cli::{kde::KDE, parsing, stats::Stats};
 use std::io::Write as IoWrite;
 use tempfile::NamedTempFile;
@@ -18,14 +18,18 @@ fn bench_parsing(c: &mut Criterion) {
     for size in [1_000, 10_000, 100_000, 1_000_000] {
         group.throughput(Throughput::Elements(size as u64));
 
-        group.bench_with_input(BenchmarkId::new("read_file_mmap", size), &size, |b, &size| {
-            let temp_file = generate_test_file(size);
-            b.iter(|| {
-                let file = temp_file.reopen().unwrap();
-                let data = parsing::read_file_mmap(&file, None);
-                black_box(data)
-            });
-        });
+        group.bench_with_input(
+            BenchmarkId::new("read_file_mmap", size),
+            &size,
+            |b, &size| {
+                let temp_file = generate_test_file(size);
+                b.iter(|| {
+                    let file = temp_file.reopen().unwrap();
+                    let data = parsing::read_file_mmap(&file, None);
+                    black_box(data)
+                });
+            },
+        );
     }
 
     group.finish();

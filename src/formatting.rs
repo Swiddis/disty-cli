@@ -1,5 +1,4 @@
 #[derive(Clone, Copy, clap::ValueEnum)]
-#[allow(non_camel_case_types)]
 pub enum Format {
     #[value(name = "float")]
     Float,
@@ -178,7 +177,7 @@ mod tests {
     #[test]
     fn test_format_bytes_pebibytes() {
         assert_eq!(format_bytes(1024.0_f64.powi(5)), "1.00PiB");
-        assert_eq!(format_bytes(3.14 * 1024.0_f64.powi(5)), "3.14PiB");
+        assert_eq!(format_bytes(2.75 * 1024.0_f64.powi(5)), "2.75PiB");
     }
 
     #[test]
