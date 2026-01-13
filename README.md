@@ -58,3 +58,31 @@ Options:
   -h, --help         Print help
   -V, --version      Print version
 ```
+
+## Development
+
+### Running Tests
+
+```bash
+cargo test
+```
+
+### Running Benchmarks
+
+The project includes criterion benchmarks for parsing, statistics computation, and KDE evaluation:
+
+```bash
+# Run all benchmarks
+cargo bench
+
+# Run specific benchmark suite
+cargo bench --bench disty_bench -- parsing
+cargo bench --bench disty_bench -- stats
+cargo bench --bench disty_bench -- kde
+cargo bench --bench disty_bench -- full_pipeline
+
+# Run benchmarks with different sample sizes
+cargo bench --bench disty_bench -- "1000000"
+```
+
+Benchmarks test with various input sizes (1K, 10K, 100K, 1M elements) to understand performance characteristics at different scales.

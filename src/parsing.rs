@@ -2,7 +2,7 @@ use memmap2::Mmap;
 use rayon::prelude::*;
 use std::fs::File;
 
-use crate::Unit;
+use crate::units::Unit;
 
 /// Parses file using mmap.
 /// Much faster than sequential buffered I/O for large files.

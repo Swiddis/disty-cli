@@ -7,6 +7,10 @@ license = "MIT"
 default-run = "disty"
 homepage = "http://github.com/swiddis/disty-cli"
 
+[lib]
+name = "disty_cli"
+path = "src/lib.rs"
+
 [[bin]]
 name = "disty"
 path = "src/main.rs"
@@ -19,3 +23,8 @@ textplots = "0.8.7"
 
 [dev-dependencies]
 tempfile = "3"
+criterion = "0.5"
+
+[[bench]]
+name = "disty_bench"
+harness = false
