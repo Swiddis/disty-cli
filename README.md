@@ -6,23 +6,23 @@ disty is a rewrite of [Michael Knyszek's distx](https://github.com/mknyszek/tool
 
 Compared to distx, this version:
 
-- Is very fast: ~45x faster in local testing. This boils down to parallelizing the KDE plotting and using `mmap` to parallelize parsing the number list.
+- Is very fast: ~55x faster in local testing. This boils down to parallelizing the KDE plotting, using `mmap` to parallelize parsing the number list, and reducing unnecessary copying.
     ```bash
     $ seq 1 10000000 | rg 1 > /tmp/large_seq
     $ wc -l /tmp/large_seq
     5217032 /tmp/large_seq
     $ hyperfine --warmup 3 'distx /tmp/large_seq' 'disty /tmp/large_seq'
     Benchmark 1: distx /tmp/large_seq
-    Time (mean ± σ):     10.057 s ±  0.493 s    [User: 10.054 s, System: 0.257 s]
-    Range (min … max):    9.111 s … 10.772 s    10 runs
-    
+      Time (mean ± σ):     10.750 s ±  0.625 s    [User: 10.711 s, System: 0.471 s]
+      Range (min … max):    9.546 s … 11.438 s    10 runs
+
     Benchmark 2: disty /tmp/large_seq
-    Time (mean ± σ):     225.2 ms ±  11.6 ms    [User: 1760.0 ms, System: 38.6 ms]
-    Range (min … max):   209.9 ms … 246.7 ms    13 runs
-    
+      Time (mean ± σ):     195.6 ms ±   1.9 ms    [User: 1757.8 ms, System: 153.9 ms]
+      Range (min … max):   191.3 ms … 199.4 ms    15 runs
+
     Summary
-    disty /tmp/large_seq ran
-    44.65 ± 3.18 times faster than distx /tmp/large_seq
+      disty /tmp/large_seq ran
+       54.95 ± 3.24 times faster than distx /tmp/large_seq    
     ```
 
 - Has marginally better plotting, which mostly comes down to setting a higher resolution than distx uses by default. ![Example screenshot](media/image.png)
