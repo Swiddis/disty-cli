@@ -26,7 +26,7 @@ textplots = "0.8.7"
 
 [dev-dependencies]
 tempfile = "3"
-criterion = "0.5"
+criterion = "0.8"
 
 [[bench]]
 name = "disty_bench"

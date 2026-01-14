@@ -1,5 +1,6 @@
-use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use disty_cli::{kde::KDE, parsing, stats::Stats};
+use std::hint::black_box;
 use std::io::Write as IoWrite;
 use tempfile::NamedTempFile;
 
