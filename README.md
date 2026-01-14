@@ -2,7 +2,7 @@
 
 disty is a quick CLI for getting an idea of the distribution of a list of numbers.
 
-disty is a rewrite of [Michael Knyszek's distx](https://github.com/mknyszek/toolbox/tree/main/cmd/distx), which is itself an extension of [Austin Clements' dist](https://github.com/aclements/go-moremath/tree/master/cmd/dist). I love using distx for all sorts of quick checks at work, from checking the distribution of database shards to analyzing network requests. I ran into performance issues for processing large lists (>10m records).
+disty is a rewrite of [Michael Knyszek's distx](https://github.com/mknyszek/toolbox/tree/main/cmd/distx), which is itself an extension of [Austin Clements' dist](https://github.com/aclements/go-moremath/tree/master/cmd/dist). I use distx for all sorts of quick numeric checks, from checking the distribution of database segments to analyzing request latency. I ran into performance issues for processing large lists (>1m records) which inspired the rewrite.
 
 Compared to distx, this version:
 
